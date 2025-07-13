@@ -1,0 +1,96 @@
+site_name: Sentience - EVE Online AI Co-Pilot
+site_description: GPT-powered assistant for EVE Online with live character data access
+site_author: Your Name
+site_url: https://yourusername.github.io/sentience
+
+repo_name: yourusername/sentience
+repo_url: https://github.com/yourusername/sentience
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - CLI Usage: user-guide/cli.md
+      - API Usage: user-guide/api.md
+      - Custom GPT: user-guide/custom-gpt.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Contributing: development/contributing.md
+      - Testing: development/testing.md
+  - API Reference:
+      - Core: api/core.md
+      - ESI Client: api/esi-client.md
+      - Models: api/models.md
+  - Project Info:
+      - Prospectus: project/prospectus.md
+      - Roadmap: project/roadmap.md
+      - Changelog: project/changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourusername
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/eveonline
+  version:
+    provider: mike

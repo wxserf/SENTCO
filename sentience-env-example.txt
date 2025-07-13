@@ -1,0 +1,19 @@
+# EVE Online Developer Application
+EVE_CLIENT_ID=your_eve_client_id_here
+EVE_CLIENT_SECRET=your_eve_client_secret_here
+EVE_CALLBACK_URL=http://localhost:8000/callback
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Application Settings
+LOG_LEVEL=INFO
+CACHE_TTL=300
+
+# API Server Settings
+API_HOST=0.0.0.0
+API_PORT=8000
+API_RELOAD=true
+
+# CLI Settings
+CLI_CALLBACK_PORT=8765
