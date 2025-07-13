@@ -1,0 +1,4 @@
+# Code owners for the repository
+*       @yourusername
+src/    @yourusername
+tests/  @yourusername
