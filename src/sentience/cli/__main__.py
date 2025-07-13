@@ -1,4 +1,4 @@
-# sentience_cli.py
+# sentience.cli.__main__
 """
 Command-line interface for testing Sentience locally
 Provides OAuth flow handling and interactive querying
