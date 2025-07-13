@@ -1,5 +1,7 @@
 # Sentience: The EVE Online Capsuleer AI Assistant
 
+[![codecov](https://codecov.io/gh/yourusername/sentience/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/sentience)
+
 **Sentience** is an AI-driven assistant for EVE Online capsuleers, providing real-time advice and logistics through integration with CCP’s ESI API and OpenAI’s GPT models. Designed for miners, industrialists, and corp logistics officers, Sentience merges asset tracking, skill planning, market analytics, and conversational support in one natural-language interface.
 
 ---
