@@ -70,8 +70,15 @@ Usage Examples
 ```bash
 git clone https://github.com/yourname/sentience-eve.git
 cd sentience-eve
+pip install -e .
 cp .env.example .env
 # Fill in ESI/OpenAI/Redis credentials
-docker-compose up  # or see /docs/setup.md for custom config
+```
 
+You can now run the interactive CLI or start the API server:
+
+```bash
+sentience-cli
+sentience-api
+```
 

@@ -308,12 +308,17 @@ class SentienceCLI:
                 print("\nInvalid option. Please try again.")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the ``sentience-cli`` console script."""
     cli = SentienceCLI()
-    
+
     # Check if config exists
-    if not cli.config.get('client_id'):
+    if not cli.config.get("client_id"):
         print("No configuration found. Starting setup wizard...")
         cli.setup_wizard()
-        
+
     cli.main_menu()
+
+
+if __name__ == "__main__":
+    main()
