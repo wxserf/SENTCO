@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
+import dotenv
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class Config:
     def _load_config(self) -> None:
         """Load configuration from environment and/or config file"""
         # Load .env file if it exists
-        load_dotenv()
+        dotenv.load_dotenv()
         
         # Try to load from config file first
         if self.config_path.exists():

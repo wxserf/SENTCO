@@ -13,7 +13,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from datetime import datetime
 
-from sentience_core import SentienceCore, EVECharacter
+from sentience.core import SentienceCore
+from sentience.models import EVECharacter
 
 
 class OAuthCallbackHandler(BaseHTTPRequestHandler):
