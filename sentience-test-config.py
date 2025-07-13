@@ -2,6 +2,7 @@
 Tests for configuration management
 """
 
+import logging
 import json
 import os
 import pytest
