@@ -269,11 +269,12 @@ async def oauth_callback(
         """)
         
     except Exception as e:
-        return HTMLResponse(content=f"""
+        logger.error("Authentication failed during OAuth callback", exc_info=True)
+        return HTMLResponse(content="""
             <html>
             <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
                 <h1 style="color: #f44336;">Authentication Failed</h1>
-                <p>Error: {str(e)}</p>
+                <p>An internal error occurred during authentication. Please try again later.</p>
             </body>
             </html>
         """, status_code=500)
