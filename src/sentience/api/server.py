@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 
 from sentience.core import SentienceCore
 from sentience.models import EVECharacter
-from sentience.utils import SecureTokenManager
 from sentience.utils.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -26,15 +25,13 @@ logger = logging.getLogger(__name__)
 
 # Pydantic models for API
 class AuthStartRequest(BaseModel):
-    scopes: Optional[List[str]] = Field(
-        default=[
-            "esi-wallet.read_character_wallet.v1",
-            "esi-assets.read_assets.v1",
-            "esi-skills.read_skills.v1",
-            "esi-industry.read_character_jobs.v1",
-            "esi-markets.read_character_orders.v1",
-        ]
-    )
+    scopes: Optional[List[str]] = Field(default=[
+        "esi-wallet.read_character_wallet.v1",
+        "esi-assets.read_assets.v1",
+        "esi-skills.read_skills.v1",
+        "esi-industry.read_character_jobs.v1",
+        "esi-markets.read_character_orders.v1"
+    ])
 
 
 class AuthStartResponse(BaseModel):
@@ -70,36 +67,34 @@ class DataPreview(BaseModel):
 # Global storage (in production, use Redis or similar)
 auth_sessions: Dict[str, dict] = {}
 app_sentience: Optional[SentienceCore] = None
-token_manager: Optional[SecureTokenManager] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
-    global app_sentience, token_manager
-
+    global app_sentience
+    
     # Load configuration
     config = get_config()
     config.setup_logging()
-
+    
     if not config.validate():
         logger.error("Invalid configuration. Please check your config.")
         raise RuntimeError("Invalid configuration")
-
-    # Initialize Sentience core and token manager
+    
+    # Initialize Sentience core
     app_sentience = SentienceCore(
-        client_id=config.get("client_id"),
-        client_secret=config.get("client_secret"),
-        callback_url=config.get("callback_url", "http://localhost:8000/callback"),
-        openai_api_key=config.get("openai_api_key"),
+        client_id=config.get('client_id'),
+        client_secret=config.get('client_secret'),
+        callback_url=config.get('callback_url', 'http://localhost:8000/callback'),
+        openai_api_key=config.get('openai_api_key')
     )
-    token_manager = SecureTokenManager(config.get("fernet_key"))
-
+    
     # Load saved characters if any
     load_saved_characters()
-
+    
     yield
-
+    
     # Cleanup
     save_characters()
 
@@ -108,7 +103,7 @@ app = FastAPI(
     title="Sentience API",
     description="EVE Online AI Co-Pilot API",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan=lifespan
 )
 
 # CORS configuration
@@ -123,63 +118,56 @@ app.add_middleware(
 
 def load_saved_characters():
     """Load previously authenticated characters"""
-    global app_sentience, token_manager
-
-    character_dir = Path("characters")
+    global app_sentience
+    
+    character_dir = Path('characters')
     if not character_dir.exists():
         return
-
-    for char_file in character_dir.glob("character_*.json"):
+        
+    for char_file in character_dir.glob('character_*.json'):
         try:
-            with open(char_file) as f:
+            with open(char_file, 'r') as f:
                 char_data = json.load(f)
-
+                
             # Recreate character object
-            refresh_token = token_manager.load_token(str(char_data["character_id"]))
-            if not refresh_token:
-                refresh_token = char_data.get("refresh_token", "")
-                if refresh_token:
-                    token_manager.save_token(str(char_data["character_id"]), refresh_token)
-
             character = EVECharacter(
-                character_id=char_data["character_id"],
-                character_name=char_data["character_name"],
-                access_token="",  # Will be refreshed on first use
-                refresh_token=refresh_token,
+                character_id=char_data['character_id'],
+                character_name=char_data['character_name'],
+                access_token='',  # Will be refreshed on first use
+                refresh_token=char_data['refresh_token'],
                 token_expiry=datetime.utcnow(),  # Force refresh
-                scopes=char_data["scopes"],
+                scopes=char_data['scopes']
             )
-
+            
             app_sentience.characters[str(character.character_id)] = character
             logger.info(f"Loaded character: {character.character_name}")
-
+            
         except Exception as e:
             logger.error(f"Failed to load character from {char_file}: {e}")
 
 
 def save_characters():
     """Save authenticated characters"""
-    global app_sentience, token_manager
-
+    global app_sentience
+    
     if not app_sentience:
         return
-
-    character_dir = Path("characters")
+        
+    character_dir = Path('characters')
     character_dir.mkdir(exist_ok=True)
-
+    
     for char_id, character in app_sentience.characters.items():
         char_file = character_dir / f"character_{character.character_id}.json"
         char_data = {
-            "character_id": character.character_id,
-            "character_name": character.character_name,
-            "scopes": character.scopes,
-            "last_updated": datetime.utcnow().isoformat(),
+            'character_id': character.character_id,
+            'character_name': character.character_name,
+            'refresh_token': character.refresh_token,
+            'scopes': character.scopes,
+            'last_updated': datetime.utcnow().isoformat()
         }
-
-        with open(char_file, "w") as f:
+        
+        with open(char_file, 'w') as f:
             json.dump(char_data, f, indent=2)
-
-        token_manager.save_token(str(character.character_id), character.refresh_token)
 
 
 @app.get("/")
@@ -193,8 +181,8 @@ async def root():
             "callback": "/callback",
             "query": "/query",
             "characters": "/characters",
-            "data_preview": "/data/{character_id}",
-        },
+            "data_preview": "/data/{character_id}"
+        }
     }
 
 
@@ -202,73 +190,72 @@ async def root():
 async def start_auth(request: AuthStartRequest):
     """Start OAuth authentication flow"""
     global app_sentience, auth_sessions
-
+    
     if not app_sentience:
         raise HTTPException(status_code=500, detail="Service not initialized")
-
+    
     # Generate auth URL
     auth_url, code_verifier = app_sentience.esi_client.generate_auth_url(request.scopes)
-
+    
     # Create session
     session_id = secrets.token_urlsafe(32)
     auth_sessions[session_id] = {
-        "code_verifier": code_verifier,
-        "created_at": datetime.utcnow(),
-        "scopes": request.scopes,
+        'code_verifier': code_verifier,
+        'created_at': datetime.utcnow(),
+        'scopes': request.scopes
     }
-
-    return AuthStartResponse(auth_url=auth_url, session_id=session_id)
+    
+    return AuthStartResponse(
+        auth_url=auth_url,
+        session_id=session_id
+    )
 
 
 @app.get("/callback")
 async def oauth_callback(
     code: str = Query(..., description="Authorization code from EVE SSO"),
-    state: Optional[str] = Query(None, description="State parameter"),
+    state: Optional[str] = Query(None, description="State parameter")
 ):
     """Handle OAuth callback from EVE SSO"""
     global app_sentience, auth_sessions
-
+    
     if not app_sentience:
         raise HTTPException(status_code=500, detail="Service not initialized")
-
+    
     # Find matching session
     session = None
     session_id = None
-
+    
     # In production, use state parameter to match session
     # For now, use the most recent session
     for sid, sess in auth_sessions.items():
-        if datetime.utcnow() - sess["created_at"] < timedelta(minutes=10):
+        if datetime.utcnow() - sess['created_at'] < timedelta(minutes=10):
             session = sess
             session_id = sid
             break
-
+    
     if not session:
-        return HTMLResponse(
-            content="""
+        return HTMLResponse(content="""
             <html>
             <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
                 <h1 style="color: #f44336;">Session Expired</h1>
                 <p>Please start the authentication process again.</p>
             </body>
             </html>
-        """,
-            status_code=400,
-        )
-
+        """, status_code=400)
+    
     try:
         # Add character
-        character = app_sentience.add_character(code, session["code_verifier"])
-
+        character = app_sentience.add_character(code, session['code_verifier'])
+        
         # Clean up session
         del auth_sessions[session_id]
-
+        
         # Save character
         save_characters()
-
+        
         # Return success page
-        return HTMLResponse(
-            content=f"""
+        return HTMLResponse(content=f"""
             <html>
             <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
                 <h1 style="color: #4CAF50;">Authentication Successful!</h1>
@@ -279,56 +266,53 @@ async def oauth_callback(
                 <p><small>Session ID: {session_id}</small></p>
             </body>
             </html>
-        """
-        )
-
+        """)
+        
     except Exception as e:
-        return HTMLResponse(
-            content=f"""
+        logger.error("Authentication failed during OAuth callback", exc_info=True)
+        return HTMLResponse(content="""
             <html>
             <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
                 <h1 style="color: #f44336;">Authentication Failed</h1>
-                <p>Error: {str(e)}</p>
+                <p>An internal error occurred during authentication. Please try again later.</p>
             </body>
             </html>
-        """,
-            status_code=500,
-        )
+        """, status_code=500)
 
 
 @app.post("/query", response_model=QueryResponse)
 async def query_assistant(request: QueryRequest):
     """Query the AI assistant with character context"""
     global app_sentience
-
+    
     if not app_sentience:
         raise HTTPException(status_code=500, detail="Service not initialized")
-
+    
     if request.character_id not in app_sentience.characters:
-        raise HTTPException(
-            status_code=404, detail="Character not found. Please authenticate first."
-        )
-
+        raise HTTPException(status_code=404, detail="Character not found. Please authenticate first.")
+    
     try:
         # Process query
         response = app_sentience.query_assistant(request.character_id, request.query)
         character = app_sentience.characters[request.character_id]
-
+        
         # Determine which data sources were used
         query_lower = request.query.lower()
         data_sources = []
-
-        if any(word in query_lower for word in ["isk", "wallet", "balance", "money"]):
-            data_sources.append("wallet")
-        if any(word in query_lower for word in ["asset", "item", "ship", "module"]):
-            data_sources.append("assets")
-        if any(word in query_lower for word in ["skill", "train", "sp", "skillpoint"]):
-            data_sources.append("skills")
-
+        
+        if any(word in query_lower for word in ['isk', 'wallet', 'balance', 'money']):
+            data_sources.append('wallet')
+        if any(word in query_lower for word in ['asset', 'item', 'ship', 'module']):
+            data_sources.append('assets')
+        if any(word in query_lower for word in ['skill', 'train', 'sp', 'skillpoint']):
+            data_sources.append('skills')
+        
         return QueryResponse(
-            response=response, character_name=character.character_name, data_sources=data_sources
+            response=response,
+            character_name=character.character_name,
+            data_sources=data_sources
         )
-
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
 
@@ -337,21 +321,19 @@ async def query_assistant(request: QueryRequest):
 async def list_characters():
     """List all authenticated characters"""
     global app_sentience
-
+    
     if not app_sentience:
         raise HTTPException(status_code=500, detail="Service not initialized")
-
+    
     characters = []
     for char_id, character in app_sentience.characters.items():
-        characters.append(
-            CharacterInfo(
-                character_id=character.character_id,
-                character_name=character.character_name,
-                authenticated_at=datetime.utcnow().isoformat(),
-                scopes=character.scopes,
-            )
-        )
-
+        characters.append(CharacterInfo(
+            character_id=character.character_id,
+            character_name=character.character_name,
+            authenticated_at=datetime.utcnow().isoformat(),
+            scopes=character.scopes
+        ))
+    
     return characters
 
 
@@ -359,37 +341,37 @@ async def list_characters():
 async def get_data_preview(character_id: str):
     """Get a preview of character data"""
     global app_sentience
-
+    
     if not app_sentience:
         raise HTTPException(status_code=500, detail="Service not initialized")
-
+    
     if character_id not in app_sentience.characters:
         raise HTTPException(status_code=404, detail="Character not found")
-
+    
     character = app_sentience.characters[character_id]
     preview = DataPreview(last_updated=datetime.utcnow().isoformat())
-
+    
     try:
         # Fetch wallet
         wallet = app_sentience.esi_client.get_character_wallet(character)
         preview.wallet_balance = wallet.balance
     except Exception:
         pass
-
+    
     try:
         # Fetch assets
         assets = app_sentience.esi_client.get_character_assets(character)
         preview.total_assets = len(assets)
     except Exception:
         pass
-
+    
     try:
         # Fetch skills
         skills = app_sentience.esi_client.get_character_skills(character)
         preview.total_skillpoints = sum(s.skillpoints for s in skills)
     except Exception:
         pass
-
+    
     return preview
 
 
@@ -397,11 +379,11 @@ async def get_data_preview(character_id: str):
 async def health_check():
     """Health check endpoint"""
     global app_sentience
-
+    
     return {
         "status": "healthy" if app_sentience else "not_initialized",
         "timestamp": datetime.utcnow().isoformat(),
-        "characters_loaded": len(app_sentience.characters) if app_sentience else 0,
+        "characters_loaded": len(app_sentience.characters) if app_sentience else 0
     }
 
 
@@ -409,12 +391,18 @@ def run():
     """Run the API server"""
     # Get config for host/port settings
     config = get_config()
-
-    host = config.get("api_host", "0.0.0.0")
-    port = config.get("api_port", 8000)
-    reload = config.get("api_reload", True)
-
-    uvicorn.run("sentience.api.server:app", host=host, port=port, reload=reload, log_level="info")
+    
+    host = config.get('api_host', '0.0.0.0')
+    port = config.get('api_port', 8000)
+    reload = config.get('api_reload', True)
+    
+    uvicorn.run(
+        "sentience.api.server:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info"
+    )
 
 
 if __name__ == "__main__":
