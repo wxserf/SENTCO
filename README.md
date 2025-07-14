@@ -74,7 +74,8 @@ git clone https://github.com/yourname/sentience-eve.git
 cd sentience-eve
 pip install -e .
 cp .env.example .env
-# Fill in ESI/OpenAI/Redis credentials
+# Fill in ESI/OpenAI credentials and generate a Fernet key
+# python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 ```
 
 You can now run the interactive CLI or start the API server:
