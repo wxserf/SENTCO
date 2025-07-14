@@ -128,8 +128,6 @@ cp .env.example .env
 EVE_CLIENT_ID="your_client_id"
 EVE_CLIENT_SECRET="your_client_secret"
 OPENAI_API_KEY="your_openai_key"
-FERNET_KEY="your_fernet_key"
-# generate with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 
 # Or run the interactive setup
 sentience-cli
@@ -323,8 +321,7 @@ htmlcov/
   "client_id": "your_eve_client_id_here",
   "client_secret": "your_eve_client_secret_here",
   "callback_url": "http://localhost:8000/callback",
-  "openai_api_key": "your_openai_api_key_here",
-  "fernet_key": "generate_with_python"
+  "openai_api_key": "your_openai_api_key_here"
 }
 ```
 
